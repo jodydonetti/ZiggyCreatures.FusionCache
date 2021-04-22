@@ -1,14 +1,15 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
-		<TargetFramework>netstandard2.0</TargetFramework>
+		<TargetFrameworks>netstandard2.1;netstandard2.0</TargetFrameworks>
 		<LangVersion>8.0</LangVersion>
 		<Nullable>enable</Nullable>
-		<Version>0.1.3</Version>
+		<Version>0.1.3.1-appmetrics</Version>
 		<Authors>Jody Donetti</Authors>
 		<Company>Jody Donetti</Company>
 		<Product>FusionCache</Product>
 		<PackageId>ZiggyCreatures.FusionCache</PackageId>
+    <IncludeSource>True</IncludeSource>
 		<Copyright>Copyright © Jody Donetti 2021</Copyright>
 		<PackageIcon>logo-128x128.png</PackageIcon>
 		<Description>FusionCache is an easy to use, high performance and robust cache with an optional distributed 2nd layer and some advanced features.</Description>
@@ -24,11 +25,7 @@
 	<PropertyGroup>
 		<DocumentationFile>ZiggyCreatures.FusionCache.xml</DocumentationFile>
 		<PackageReleaseNotes>
-			- Introduced a generic MaybeValue&lt;T&gt; type
-			- Better TryGet&lt;T&gt;
-			- Added a fail-safe default value to GetOrSet&lt;T&gt;
-			- Added a GetOrSet&lt;T&gt; overload with a direct value (instead of a factory)
-			- Perf optimizations
+			- Introduced Metrics Plugin feature.  
 		</PackageReleaseNotes>
 	</PropertyGroup>
 
@@ -40,7 +37,13 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="3.1.10" />
-	</ItemGroup>
+		<PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="3.1.13" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.1'">
+    <PackageReference Include="System.Runtime.Loader" Version="4.3.0" />
+
+  </ItemGroup>
+
 
 </Project>

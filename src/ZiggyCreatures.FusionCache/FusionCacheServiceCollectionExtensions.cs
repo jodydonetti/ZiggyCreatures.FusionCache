@@ -36,14 +36,15 @@ namespace Microsoft.Extensions.DependencyInjection
 			services.TryAdd(ServiceDescriptor.Singleton<IFusionCache>(serviceProvider =>
 			{
 				var logger = serviceProvider.GetService<ILogger<FusionCache>>();
-
+               
 				var cache = new FusionCache(
 					serviceProvider.GetRequiredService<IOptions<FusionCacheOptions>>(),
 					serviceProvider.GetService<IMemoryCache>(),
-					logger: logger
+					logger: logger,
+					metrics: serviceProvider.GetService<IFusionMetrics>()
 				);
-
-				if (useDistributedCacheIfAvailable)
+                
+                if (useDistributedCacheIfAvailable)
 				{
 					var distributedCache = serviceProvider.GetService<IDistributedCache>();
 

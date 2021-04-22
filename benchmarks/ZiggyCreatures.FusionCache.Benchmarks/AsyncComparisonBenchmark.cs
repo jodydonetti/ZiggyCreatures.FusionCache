@@ -48,7 +48,8 @@ namespace ZiggyCreatures.Caching.Fusion.Benchmarks
 		private List<string> Keys;
 		private TimeSpan CacheDuration = TimeSpan.FromDays(10);
 		private IServiceProvider ServiceProvider;
-
+        
+        
 		[GlobalSetup]
 		public void Setup()
 		{
@@ -64,9 +65,10 @@ namespace ZiggyCreatures.Caching.Fusion.Benchmarks
 			var services = new ServiceCollection();
 			services.AddEasyCaching(options => { options.UseInMemory("default"); });
 			ServiceProvider = services.BuildServiceProvider();
-		}
+        }
 
-		[Benchmark(Baseline = true)]
+        [Benchmark(Baseline = true)]
+        [BenchmarkCategory("Metrics")]
 		public async Task FusionCache()
 		{
 			using (var cache = new FusionCache(new FusionCacheOptions { DefaultEntryOptions = new FusionCacheEntryOptions(CacheDuration) }))
@@ -98,6 +100,40 @@ namespace ZiggyCreatures.Caching.Fusion.Benchmarks
 			}
 		}
 
+        [Benchmark]
+        [BenchmarkCategory("Metrics")]
+        public async Task FusionCacheWithMetrics()
+        {
+            var testMetrics = new TestMetrics();
+            
+            using (var cache = new FusionCache(new FusionCacheOptions { DefaultEntryOptions = new FusionCacheEntryOptions(CacheDuration) }, metrics: testMetrics))
+            {
+                for (int i = 0; i < Rounds; i++)
+                {
+                    var tasks = new ConcurrentBag<Task>();
+
+                    Parallel.ForEach(Keys, key =>
+                    {
+                        Parallel.For(0, Accessors, _ =>
+                        {
+                            var t = cache.GetOrSetAsync<SamplePayload>(
+                                key,
+                                async ct =>
+                                {
+                                    await Task.Delay(FactoryDurationMs).ConfigureAwait(false);
+                                    return new SamplePayload();
+                                }
+                            );
+                            tasks.Add(t);
+                        });
+                    });
+
+                    await Task.WhenAll(tasks).ConfigureAwait(false);
+                }
+
+                // NO NEED TO CLEANUP, AUTOMATICALLY DONE WHEN DISPOSING
+            }
+        }
 		[Benchmark]
 		public async Task CacheManager()
 		{
@@ -239,5 +275,63 @@ namespace ZiggyCreatures.Caching.Fusion.Benchmarks
 			}
 		}
 
+	}
+
+	public class TestMetrics : IFusionMetrics
+	{
+		public int CacheHitCounter = 0;
+		public int CacheMissCounter = 0;
+		public int CachStaleHitCounter = 0;
+		public int CacheBackgroundRefreshCounter = 0;
+		public int CacheExpiredCounter = 0;
+		public int CacheCapacityExpiredCounter = 0;
+		public int CacheRemovedCounter = 0;
+		public int CacheReplacedCounter = 0;
+		public int CacheEvictedCounter = 0;
+
+		public void CacheHit()
+		{
+			Interlocked.Increment(ref CacheHitCounter);
+		}
+
+		public void CacheMiss()
+		{
+			Interlocked.Increment(ref CacheMissCounter);
+		}
+
+		public void CacheStaleHit()
+		{
+			Interlocked.Increment(ref CachStaleHitCounter);
+		}
+
+		public void CacheBackgroundRefresh()
+		{
+			Interlocked.Increment(ref CacheBackgroundRefreshCounter);
+		}
+
+		public void CacheExpired()
+		{
+			Interlocked.Increment(ref CacheExpiredCounter);
+		}
+
+		public void CacheCapacityExpired()
+		{
+			Interlocked.Increment(ref CacheCapacityExpiredCounter);
+		}
+
+		public void CacheRemoved()
+		{
+			Interlocked.Increment(ref CacheRemovedCounter);
+		}
+
+		public void CacheReplaced()
+		{
+			Interlocked.Increment(ref CacheReplacedCounter);
+		}
+
+		public void CacheEvicted()
+		{
+			Interlocked.Increment(ref CacheEvictedCounter);
+		}
 	}
 }
